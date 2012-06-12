@@ -60,7 +60,7 @@ class DBSession implements SessionHandlerInterface{
 			self::$db = new PDO(self::DRIVER . ':dbname=' . self::DB . ';host=' . self::HOST, self::USER, self::PASS);
 		}
 
-        return true;
+		return true;
 	}
 
 	protected static function hash_id($id){
@@ -84,7 +84,7 @@ class DBSession implements SessionHandlerInterface{
 				return self::DISK_TBL;
 
 			default:
-				return false;
+					return false;
 		}
 	}
 
@@ -93,11 +93,11 @@ class DBSession implements SessionHandlerInterface{
 
 		$stmt->execute([$id]);
 
-        $ret = (boolean)count($stmt->fetchAll());
+		$ret = (boolean)count($stmt->fetchAll());
 
-        $stmt->closeCursor();
+		$stmt->closeCursor();
 
-        return $ret;
+		return $ret;
 	}
 
 	protected static function switch_table($id){  //DOES NOT HASH ID
@@ -106,7 +106,7 @@ class DBSession implements SessionHandlerInterface{
 		switch(self::$table){
 			case self::MEM_TBL:
 				self::$table = self::DISK_TBL;
-                break;
+				break;
 
 			case self::DISK_TBL:
 				self::$table = self::MEM_TBL;
@@ -116,33 +116,33 @@ class DBSession implements SessionHandlerInterface{
 	}
 
 	protected static function switch_if_necessary($id, $data){  //DOES NOT HASH ID
-        if(self::$non_volatile){
-            return true;
-        }
+		if(self::$non_volatile){
+			return true;
+		}
 
-        if(self::$table === self::MEM_TBL){
-            if(strlen((binary)$data) > self::MEM_MAX){
-                self::switch_table($id);
-            }
-        }elseif(strlen((binary)$data) <= self::MEM_MAX){
-            self::switch_table($id);
-        }
+		if(self::$table === self::MEM_TBL){
+			if(strlen((binary)$data) > self::MEM_MAX){
+				self::switch_table($id);
+			}
+		}elseif(strlen((binary)$data) <= self::MEM_MAX){
+			self::switch_table($id);
+		}
 
-        return true;
+		return true;
 	}
 
 	protected static function set_table($id){  //DOES NOT HASH ID
-        return (boolean)(self::$table = (self::where_is($id) ?: (self::$non_volatile ? self::DISK_TBL : self::MEM_TBL)));
+		return (boolean)(self::$table = (self::where_is($id) ?: (self::$non_volatile ? self::DISK_TBL : self::MEM_TBL)));
 	}
 
-    protected static function delete($id){
-        $stmt = self::$db->prepare(sprintf(self::$DELETE, self::$table));
+	protected static function delete($id){
+		$stmt = self::$db->prepare(sprintf(self::$DELETE, self::$table));
 
-        $stmt->execute([$id]);
-        $stmt->closeCursor();
+		$stmt->execute([$id]);
+		$stmt->closeCursor();
 
-        return true;
-    }
+		return true;
+	}
 
 	public static function open(){
 		if(!self::$initialized || !self::$connected){
@@ -198,9 +198,9 @@ class DBSession implements SessionHandlerInterface{
 		$id = self::hash_id($id);
 
 		self::set_table($id);
-        self::delete($id);
+		self::delete($id);
 
-        return true;
+		return true;
 	}
 
 	public static function gc(){
@@ -218,23 +218,23 @@ class DBSession implements SessionHandlerInterface{
 class DBSession_Exception extends Exception{}
 
 if(DBSession::ENCRYPTED){
-    class DBSession_Encrypted extends DBSession{
-        protected static function encrypt($data){
+	class DBSession_Encrypted extends DBSession{
+		protected static function encrypt($data){
 
-        }
+		}
 
-        protected static function decrypt($data){
+		protected static function decrypt($data){
 
-        }
+		}
 
-        public static function write($id, $data){
-            return parent::write($id, self::encrypt($data));
-        }
+		public static function write($id, $data){
+			return parent::write($id, self::encrypt($data));
+		}
 
-        public static function read($id){
-            return self::decrypt(parent::read($id));
-        }
-    }
+		public static function read($id){
+			return self::decrypt(parent::read($id));
+		}
+	}
 }
 
 DBSession::ENCRYPTED ? DBSession_Encrypted::init() : DBSession::init();

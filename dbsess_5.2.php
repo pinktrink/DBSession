@@ -67,7 +67,7 @@ class DBSession{
 			self::$db = new PDO(self::DRIVER . ':dbname=' . self::DB . ';host=' . self::HOST, self::USER, self::PASS);
 		}
 
-        return true;
+		return true;
 	}
 
 	protected static function hash_id($id){
@@ -113,7 +113,7 @@ class DBSession{
 		switch(self::$table){
 			case self::MEM_TBL:
 				self::$table = self::DISK_TBL;
-                break;
+				break;
 
 			case self::DISK_TBL:
 				self::$table = self::MEM_TBL;
@@ -123,34 +123,34 @@ class DBSession{
 	}
 
 	protected static function switch_if_necessary($id, $data){  //DOES NOT HASH ID
-        if(self::$non_volatile){
-            return true;
-        }
+		if(self::$non_volatile){
+			return true;
+		}
 
-        if(self::$table === self::MEM_TBL){
-            if(strlen((binary)$data) > self::MEM_MAX){
-                self::switch_table($id);
-            }
-        }elseif(strlen((binary)$data) <= self::MEM_MAX){
-            self::switch_table($id);
-        }
+		if(self::$table === self::MEM_TBL){
+			if(strlen((binary)$data) > self::MEM_MAX){
+				self::switch_table($id);
+			}
+		}elseif(strlen((binary)$data) <= self::MEM_MAX){
+			self::switch_table($id);
+		}
 
-        return true;
+		return true;
 	}
 
 	protected static function set_table($id){  //DOES NOT HASH ID
-        $ret = self::where_is($id);
-        return (boolean)(self::$table = ($ret ? $ret : (self::$non_volatile ? self::DISK_TBL : self::MEM_TBL)));
+		$ret = self::where_is($id);
+		return (boolean)(self::$table = ($ret ? $ret : (self::$non_volatile ? self::DISK_TBL : self::MEM_TBL)));
 	}
 
-    protected static function delete($id){
-        $stmt = self::$db->prepare(sprintf(self::$DELETE, self::$table));
+	protected static function delete($id){
+		$stmt = self::$db->prepare(sprintf(self::$DELETE, self::$table));
 
-        $stmt->execute(array($id));
-        $stmt->closeCursor();
+		$stmt->execute(array($id));
+		$stmt->closeCursor();
 
-        return true;
-    }
+		return true;
+	}
 
 	public static function open(){
 		if(!self::$initialized || !self::$connected){
@@ -205,10 +205,10 @@ class DBSession{
 	public static function destroy($id){  //FRONT-END FUNCTION, WILL HASH ID
 		$id = self::hash_id($id);
 
-        self::set_table($id);
+		self::set_table($id);
 		self::delete($id);
 
-        return true;
+		return true;
 	}
 
 	public static function garbage_collect(){
@@ -226,53 +226,53 @@ class DBSession{
 class DBSession_Exception extends Exception{}
 
 if(DBSession::ENCRYPTED){
-    class DBSession_Encrypted extends DBSession{
-        public static function init(){
-            self::$GET_DATA = 'SELECT `' . self::DATA_FIELD . '` FROM `' . self::DB . '`.`%s` WHERE `' . self::ID_FIELD . '` = ?';
-            self::$SET_DATA = 'UPDATE `' . self::DB . '`.`%s` SET `' . self::DATA_FIELD . '` = ? WHERE `' . self::ID_FIELD . '` = ?';
-            self::$INSERT = 'INSERT INTO `' . self::DB . '`.`%s` (`'. self::DATA_FIELD .'`, `'. self::ID_FIELD .'`) VALUES (?, ?)';
-            self::$EXISTS = 'SELECT `' . self::ID_FIELD . '` FROM `' . self::DB . '`.`%s` WHERE `' . self::ID_FIELD . '` = ?';
-            self::$DELETE = 'DELETE FROM `' . self::DB . '`.`%s` WHERE `' . self::ID_FIELD . '` = ?';
-            self::$GARBAGE_COLLECT = 'DELETE FROM `' . self::DB . '`.`%s` WHERE UNIX_TIMESTAMP(`' . self::TIME_FIELD . '`) < ?';
-            self::$UPDATE = 'UPDATE `' . self::DB . '`.`%s` SET `' . self::TIME_FIELD . '` = CURRENT_TIMESTAMP WHERE `' . self::ID_FIELD . '` = ?';
-            self::$WHERE = 'SELECT (SELECT `' . self::ID_FIELD . '` FROM `' . self::DB . '`.`' . self::MEM_TBL . '` WHERE `' . self::ID_FIELD . '` = ?) AS memid, (SELECT `' . self::ID_FIELD . '` FROM `' . self::DB . '`.`' . self::DISK_TBL . '` WHERE `' . self::ID_FIELD . '` = ?) AS diskid';
+	class DBSession_Encrypted extends DBSession{
+		public static function init(){
+			self::$GET_DATA = 'SELECT `' . self::DATA_FIELD . '` FROM `' . self::DB . '`.`%s` WHERE `' . self::ID_FIELD . '` = ?';
+			self::$SET_DATA = 'UPDATE `' . self::DB . '`.`%s` SET `' . self::DATA_FIELD . '` = ? WHERE `' . self::ID_FIELD . '` = ?';
+			self::$INSERT = 'INSERT INTO `' . self::DB . '`.`%s` (`'. self::DATA_FIELD .'`, `'. self::ID_FIELD .'`) VALUES (?, ?)';
+			self::$EXISTS = 'SELECT `' . self::ID_FIELD . '` FROM `' . self::DB . '`.`%s` WHERE `' . self::ID_FIELD . '` = ?';
+			self::$DELETE = 'DELETE FROM `' . self::DB . '`.`%s` WHERE `' . self::ID_FIELD . '` = ?';
+			self::$GARBAGE_COLLECT = 'DELETE FROM `' . self::DB . '`.`%s` WHERE UNIX_TIMESTAMP(`' . self::TIME_FIELD . '`) < ?';
+			self::$UPDATE = 'UPDATE `' . self::DB . '`.`%s` SET `' . self::TIME_FIELD . '` = CURRENT_TIMESTAMP WHERE `' . self::ID_FIELD . '` = ?';
+			self::$WHERE = 'SELECT (SELECT `' . self::ID_FIELD . '` FROM `' . self::DB . '`.`' . self::MEM_TBL . '` WHERE `' . self::ID_FIELD . '` = ?) AS memid, (SELECT `' . self::ID_FIELD . '` FROM `' . self::DB . '`.`' . self::DISK_TBL . '` WHERE `' . self::ID_FIELD . '` = ?) AS diskid';
 
-            if(!self::$db && !self::connect()){
-                throw new DBSession_Exception('Unable to connect to the database.');
-            }
+			if(!self::$db && !self::connect()){
+				throw new DBSession_Exception('Unable to connect to the database.');
+			}
 
-            self::$table = self::$non_volatile ? self::DISK_TBL : self::MEM_TBL;
+			self::$table = self::$non_volatile ? self::DISK_TBL : self::MEM_TBL;
 
-            session_set_save_handler(
-                array(self, 'open'),
-                array(self, 'close'),
-                array(self, 'read'),
-                array(self, 'write'),
-                array(self, 'destroy'),
-                array(self, 'garbage_collect')
-            );
+			session_set_save_handler(
+				array(self, 'open'),
+				array(self, 'close'),
+				array(self, 'read'),
+				array(self, 'write'),
+				array(self, 'destroy'),
+				array(self, 'garbage_collect')
+			);
 
-            self::$initialized = true;
+			self::$initialized = true;
 
-            return true;
-        }
+			return true;
+		}
 
-        protected static function encrypt($data){
+		protected static function encrypt($data){
 
-        }
+		}
 
-        protected static function decrypt($data){
+		protected static function decrypt($data){
 
-        }
+		}
 
-        public static function write($id, $data){
-            return parent::write($id, self::encrypt($data));
-        }
+		public static function write($id, $data){
+			return parent::write($id, self::encrypt($data));
+		}
 
-        public static function read($id){
-            return self::decrypt(parent::read($id));
-        }
-    }
+		public static function read($id){
+			return self::decrypt(parent::read($id));
+		}
+	}
 }
 
 DBSession::ENCRYPTED ? DBSession_Encrypted::init() : DBSession::init();
