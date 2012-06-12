@@ -84,7 +84,7 @@ class DBSession implements SessionHandlerInterface{
 				return self::DISK_TBL;
 
 			default:
-					return false;
+				return false;
 		}
 	}
 
