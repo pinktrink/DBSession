@@ -30,14 +30,15 @@ class DBSession{
 	protected static $UPDATE;
 	protected static $WHERE;
 	protected static $initialized = false;
+	protected static $connected = false;
 
 	public static function init(){
 		self::$GET_DATA = 'SELECT `' . self::DATA_FIELD . '` FROM `' . self::DB . '`.`%s` WHERE `' . self::ID_FIELD . '` = ?';
 		self::$SET_DATA = 'UPDATE `' . self::DB . '`.`%s` SET `' . self::DATA_FIELD . '` = ? WHERE `' . self::ID_FIELD . '` = ?';
 		self::$INSERT = 'INSERT INTO `' . self::DB . '`.`%s` (`'. self::DATA_FIELD .'`, `'. self::ID_FIELD .'`) VALUES (?, ?)';
-		self::$EXISTS = 'SELECT `' . self::ID_FIELD . '` FROM `' . self::DB . '`.`%s` WHERE id = ?';
+		self::$EXISTS = 'SELECT `' . self::ID_FIELD . '` FROM `' . self::DB . '`.`%s` WHERE `' . self::ID_FIELD . '` = ?';
 		self::$DELETE = 'DELETE FROM `' . self::DB . '`.`%s` WHERE `' . self::ID_FIELD . '` = ?';
-		self::$GARBAGE_COLLECT = 'DELETE FROM `' . self::DB . '`.`' . self::MEM_TBL . '`, `' . self::DB .'`.`' . self::DISK_TBL . '` WHERE `' . self::TIME_FIELD . '` < ?';
+		self::$GARBAGE_COLLECT = 'DELETE FROM `' . self::DB . '`.`%s` WHERE UNIX_TIMESTAMP(`' . self::TIME_FIELD . '`) < ?';
 		self::$UPDATE = 'UPDATE `' . self::DB . '`.`%s` SET `' . self::TIME_FIELD . '` = CURRENT_TIMESTAMP WHERE `' . self::ID_FIELD . '` = ?';
 		self::$WHERE = 'SELECT (SELECT `' . self::ID_FIELD . '` FROM `' . self::DB . '`.`' . self::MEM_TBL . '` WHERE `' . self::ID_FIELD . '` = ?) AS memid, (SELECT `' . self::ID_FIELD . '` FROM `' . self::DB . '`.`' . self::DISK_TBL . '` WHERE `' . self::ID_FIELD . '` = ?) AS diskid';
 
@@ -152,15 +153,20 @@ class DBSession{
     }
 
 	public static function open(){
-		if(!self::$initialized){
+		if(!self::$initialized || !self::$connected){
 			self::init();  //If this fails, it will throw an exception, so we don't need to worry about making sure it initializes properly.
+
+			self::$connected = true;
 		}
 
 		return true;
 	}
 
 	public static function close(){
-		if(self::$db) self::$db->close();
+		if(self::$connected){
+			self::$db = null;
+			self::$connected = false;
+		}
 
 		return true;
 	}
@@ -206,10 +212,12 @@ class DBSession{
 	}
 
 	public static function garbage_collect(){
-		$stmt = self::$db->prepare(self::$GARBAGE_COLLECT);
+		foreach(array(self::MEM_TBL, self::DISK_TBL) as $tbl){
+			$stmt = self::$db->prepare(sprintf(self::$GARBAGE_COLLECT, $tbl));
 
-		$stmt->execute(time() - self::SESS_TIMEOUT);
-		$stmt->closeCursor();
+			$stmt->execute(array(time() - self::SESS_TIMEOUT));
+			$stmt->closeCursor();
+		}
 
 		return true;
 	}
@@ -223,9 +231,9 @@ if(DBSession::ENCRYPTED){
             self::$GET_DATA = 'SELECT `' . self::DATA_FIELD . '` FROM `' . self::DB . '`.`%s` WHERE `' . self::ID_FIELD . '` = ?';
             self::$SET_DATA = 'UPDATE `' . self::DB . '`.`%s` SET `' . self::DATA_FIELD . '` = ? WHERE `' . self::ID_FIELD . '` = ?';
             self::$INSERT = 'INSERT INTO `' . self::DB . '`.`%s` (`'. self::DATA_FIELD .'`, `'. self::ID_FIELD .'`) VALUES (?, ?)';
-            self::$EXISTS = 'SELECT `' . self::ID_FIELD . '` FROM `' . self::DB . '`.`%s` WHERE id = ?';
+            self::$EXISTS = 'SELECT `' . self::ID_FIELD . '` FROM `' . self::DB . '`.`%s` WHERE `' . self::ID_FIELD . '` = ?';
             self::$DELETE = 'DELETE FROM `' . self::DB . '`.`%s` WHERE `' . self::ID_FIELD . '` = ?';
-            self::$GARBAGE_COLLECT = 'DELETE FROM `' . self::DB . '`.`' . self::MEM_TBL . '`, `' . self::DB .'`.`' . self::DISK_TBL . '` WHERE `' . self::TIME_FIELD . '` < ?';
+            self::$GARBAGE_COLLECT = 'DELETE FROM `' . self::DB . '`.`%s` WHERE UNIX_TIMESTAMP(`' . self::TIME_FIELD . '`) < ?';
             self::$UPDATE = 'UPDATE `' . self::DB . '`.`%s` SET `' . self::TIME_FIELD . '` = CURRENT_TIMESTAMP WHERE `' . self::ID_FIELD . '` = ?';
             self::$WHERE = 'SELECT (SELECT `' . self::ID_FIELD . '` FROM `' . self::DB . '`.`' . self::MEM_TBL . '` WHERE `' . self::ID_FIELD . '` = ?) AS memid, (SELECT `' . self::ID_FIELD . '` FROM `' . self::DB . '`.`' . self::DISK_TBL . '` WHERE `' . self::ID_FIELD . '` = ?) AS diskid';
 
